@@ -1,5 +1,7 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
+#include <stdio.h>
+#include "freertos/task.h"
 
 #define LOOP_DELAY_MS           10      // Loop sampling time (ms)
 #define DEBOUNCE_TIME           40      // Debounce time (ms)
@@ -15,10 +17,9 @@ char keypad_array[NROWS][NCOLS] = {   // Keypad layout
     {'7', '8', '9', 'C'},
     {'*', '0', '#', 'D'}
 };
-
+int row_pins[] = {GPIO_NUM_3, GPIO_NUM_8, GPIO_NUM_18, GPIO_NUM_17};     // Pin numbers for rows
+int col_pins[] = {GPIO_NUM_16, GPIO_NUM_15, GPIO_NUM_7, GPIO_NUM_6};   // Pin numbers for columns
 void init_keypad(){
-
-    int row_pins[] = {GPIO_NUM_3, GPIO_NUM_8, GPIO_NUM_18, GPIO_NUM_17};     // Pin numbers for rows
     for (i=0; i<NROWS;i++){
         gpio_reset_pin(row_pins[i]);
         gpio_set_direction(row_pins[i], GPIO_MODE_OUTPUT);
@@ -29,7 +30,6 @@ void init_keypad(){
             gpio_set_level(row_pins[i],0);
         }
     }
-    int col_pins[] = {GPIO_NUM_16, GPIO_NUM_15, GPIO_NUM_7, GPIO_NUM_6};   // Pin numbers for columns
     for (i=0; i<NCOLS; i++){
         gpio_reset_pin(col_pins[i]);
         gpio_set_direction(col_pins[i], GPIO_MODE_INPUT);
@@ -42,28 +42,22 @@ void init_keypad(){
     }
 }
 char scan_keypad(){
-    if (ACTIVE ==0){
-        int INACTIVE =1
-    }
-    else{
-        INACTIVE =0
-    }
     char key = NOPRESS;
     //set all rows inactive
     for (int i =0; i < NROWS; i++){
-        gpio_set_level(row_pins[i], INACTIVE);
+        gpio_set_level(row_pins[i], !ACTIVE);
     }
 
     for (int i = 0; i < NROWS; i++){
         gpio_set_level(row_pins[i],ACTIVE);
 
         for (int j = 0; j < NCOLS; j++){
-            if (gpio_get_level(col_pin[j]) == ACTIVE){
+            if (gpio_get_level(col_pins[j]) == ACTIVE){
                 key = keypad_array [i][j];
                 return key;
             }
         }
-        gpio_set_level(row_pins[i], INACTIVE);
+        gpio_set_level(row_pins[i], !ACTIVE);
     }
     return key;
 }
@@ -73,28 +67,17 @@ typedef enum {
     DEBOUNCE,
 }  State_t; 
 State_t state;
+state = WAIT_FOR_PRESS;
 int time = 0;
-bool time_out = (time > DEBOUNCE_TIME)
-char new_key;
-
+char new_key = NOPRESS;
+char last_key = NOPRESS;
 void app_main(){
+    init_keypad();
     while (1){
-        init_keypad()
         new_key = scan_keypad();
-        state = "WAIT_FOR_RELEASE";
+        bool time_out = (time > DEBOUNCE_TIME);
+       
         switch(state){
-
-            case WAIT_FOR_RELEASE:
-
-            if (new_key != NOPRESS){
-                state = WAIT_FOR_RELEASE;
-            }
-            else{
-                prinf(last_key)
-                state = WAIT_FOR_PRESS;
-            }
-            break;
-      
             case WAIT_FOR_PRESS:
             if (new_key != NOPRESS){
                 last_key = new_key;
@@ -105,25 +88,35 @@ void app_main(){
                 state = WAIT_FOR_PRESS;
             }
             break;
-        
+            
             case DEBOUNCE:
-            for (i = 0; i < time_out; i ++){
-                time += LOOP_DELAY_MS;
-                if (time == time_out){
-                    if ( new_key == last_key){
-                        state = WAIT_FOR_RELEASE;
-                    }
-                    else {
-                        state = WAIT_FOR_PRESS;
-                    }
-                }
-                else {
+            time += LOOP_DELAY_MS;
+            if (time_out){
+                if ( new_key == last_key){
                     state = WAIT_FOR_RELEASE;
                 }
+                else {
+                    state = WAIT_FOR_PRESS;
+                }
+            }
+            else {
+                state = DEBOUNCE;
+            }
+            break;
+            
+            case WAIT_FOR_RELEASE:
+            if (new_key != NOPRESS){
+                state = WAIT_FOR_RELEASE;
+            }
+            else{
+                printf("%c\n", last_key);
+                state = WAIT_FOR_PRESS;
             }
             break;
         }
+        vTaskDelay(pdMS_TO_TICKS(LOOP_DELAY_MS));
     }
 }
+
 
 
