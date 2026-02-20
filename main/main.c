@@ -34,7 +34,7 @@ void init_keypad(){
     for (int i=0; i<NCOLS; i++){
         gpio_reset_pin(col_pins[i]);
         gpio_set_direction(col_pins[i], GPIO_MODE_INPUT);
-        if (ACTIVE){
+        if (ACTIVE==0){
             gpio_pullup_en(col_pins[i]);
         }
         else{
@@ -58,7 +58,6 @@ char scan_keypad(){
                 return key;
             }
         }
-        gpio_set_level(row_pins[i], !ACTIVE);
     }
     return key;
 }

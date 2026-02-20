@@ -12,5 +12,7 @@
     "--background-index",
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\admin\\esp\\sample_project\\build"
-  ]
+  ],
+  "idf.portWin": "COM6",
+  "idf.flashType": "UART"
 }
